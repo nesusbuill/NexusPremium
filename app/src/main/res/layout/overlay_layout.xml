@@ -4,26 +4,26 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <!-- Nút tròn nổi (Khi thu gọn) -->
+    <!-- Nút tròn nổi (Khi thu gọn) - Đã tăng lên 75dp -->
     <Button
         android:id="@+id/btnFab"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
+        android:layout_width="75dp"
+        android:layout_height="75dp"
         android:background="@drawable/bg_btn_neon"
         android:text="AI"
         android:textColor="#000"
         android:textStyle="bold"
-        android:textSize="18sp"
+        android:textSize="22sp"
         android:elevation="10dp"/>
 
     <!-- Bảng điều khiển (Khi mở rộng) -->
     <LinearLayout
         android:id="@+id/panelView"
-        android:layout_width="wrap_content"
+        android:layout_width="300dp"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_card"
         android:orientation="vertical"
-        android:padding="12dp"
+        android:padding="16dp"
         android:elevation="10dp"
         android:visibility="gone"
         android:layout_marginTop="8dp">
@@ -34,9 +34,9 @@
             android:layout_height="wrap_content"
             android:text="NEXUS READY"
             android:textColor="#00F3FF"
-            android:textSize="10sp"
+            android:textSize="12sp"
             android:fontFamily="monospace"
-            android:layout_marginBottom="8dp"
+            android:layout_marginBottom="12dp"
             android:layout_gravity="center_horizontal" />
 
         <TextView
@@ -45,27 +45,45 @@
             android:layout_height="wrap_content"
             android:text="?"
             android:textColor="#00FF41"
-            android:textSize="24sp"
+            android:textSize="32sp"
             android:textStyle="bold"
             android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="16dp" />
+
+        <!-- Công tắc tự động Next -->
+        <Switch
+            android:id="@+id/switchAutoNext"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tự động Next câu"
+            android:textColor="#FFF"
+            android:layout_marginBottom="16dp" />
 
         <Button
             android:id="@+id/btnSolve"
-            android:layout_width="130dp"
-            android:layout_height="40dp"
-            android:text="QUÉT ĐỀ"
-            android:backgroundTint="#00F3FF"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="QUÉT &amp; GIẢI CÂU NÀY"
+            android:background="@drawable/bg_btn_neon"
             android:textColor="#000"
             android:textStyle="bold"
             android:layout_marginBottom="8dp"/>
 
         <Button
-            android:id="@+id/btnClosePanel"
-            android:layout_width="130dp"
-            android:layout_height="30dp"
-            android:text="THU NHỎ"
+            android:id="@+id/btnNext"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:text="CHUYỂN CÂU (NEXT)"
             android:backgroundTint="#333"
+            android:textColor="#FFF"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btnClosePanel"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:text="THU NHỎ"
+            android:backgroundTint="#FF0055"
             android:textColor="#FFF"/>
     </LinearLayout>
 </LinearLayout>
