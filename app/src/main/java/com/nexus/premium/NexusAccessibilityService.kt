@@ -11,28 +11,60 @@ class NexusAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() { super.onServiceConnected(); instance = this }
 
+    // HÀM QUÉT TEXT ĐÃ ĐƯỢC FIX LỖI
     fun scanScreenText(): String {
         val rootNode = rootInActiveWindow ?: return ""
         val sb = StringBuilder()
+        
+        // Quét toàn bộ cửa sổ hiện tại
         extractText(rootNode, sb)
-        val fullText = sb.toString()
-        val regex = Regex("(?i)(Câu|Bài|Question)\\s*1[\\s\\.\\:]")
+        
+        // Cố gắng quét thêm các cửa sổ con (như iframe trong trình duyệt)
+        try {
+            for (window in windows) {
+                val windowRoot = window.root ?: continue
+                extractText(windowRoot, sb)
+            }
+        } catch (e: Exception) {}
+
+        var fullText = sb.toString()
+        
+        // TÌM VỊ TRÍ CÂU HỎI ĐẦU TIÊN (Chấp nhận cả "Câu 1", "Bài 1", hoặc "1.")
+        // Regex này tìm số 1 đứng đầu dòng, theo sau là dấu chấm hoặc khoảng trắng
+        val regex = Regex("(?m)^\\s*(Câu|Bài|Question)?\\s*1[\\.\\:\\s]")
         val match = regex.find(fullText)
-        return if (match != null) fullText.substring(match.range.first) else fullText
+        
+        // Nếu tìm thấy, cắt bỏ phần menu rác phía trên
+        if (match != null) {
+            fullText = fullText.substring(match.range.first)
+        }
+        
+        return fullText.trim()
     }
 
     private fun extractText(node: AccessibilityNodeInfo?, sb: StringBuilder) {
         if (node == null) return
-        if (node.text != null) sb.append(node.text).append("\n")
-        for (i in 0 until node.childCount) extractText(node.getChild(i), sb)
+        if (node.text != null) {
+            sb.append(node.text).append("\n")
+        }
+        for (i in 0 until node.childCount) {
+            extractText(node.getChild(i), sb)
+        }
     }
 
     fun processAllQuestions(apiKeys: List<String>, fullText: String) {
         NexusEvents.onStatus?.invoke("ĐANG CHIA LÔ...")
-        val regex = Regex("(?i)(Câu|Bài|Question)\\s*\\d+")
+        
+        // TÌM TẤT CẢ CÁC CÂU HỎI (Linh hoạt hơn: "Câu 1", "Bài 2", hoặc "3.")
+        val regex = Regex("(?m)^\\s*(Câu|Bài|Question)?\\s*(\\d+)[\\.\\:\\s]")
         val matches = regex.findAll(fullText).toList()
-        if (matches.isEmpty()) { NexusEvents.onStatus?.invoke("KHÔNG THẤY ĐỀ"); return }
+        
+        if (matches.isEmpty()) { 
+            NexusEvents.onStatus?.invoke("KHÔNG THẤY ĐỀ"); 
+            return 
+        }
 
+        // Chia lô 5 câu/lô
         val batchSize = 5 
         val batches = mutableListOf<String>()
         for (i in matches.indices step batchSize) {
