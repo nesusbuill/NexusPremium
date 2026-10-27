@@ -1,124 +1,131 @@
-<?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#09090B"
-    android:fillViewport="true">
+package com.nexus.premium
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.provider.Settings
+import android.widget.*
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
-        <!-- LOGO & TITLE -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="NEXUS PREMIUM"
-            android:textColor="#00F3FF"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:fontFamily="monospace"
-            android:layout_gravity="center_horizontal"
-            android:shadowColor="#00F3FF"
-            android:shadowDx="0" android:shadowDy="0" android:shadowRadius="15" />
+class MainActivity : AppCompatActivity() {
+    
+    private lateinit var tvNotiStatus: TextView
+    private lateinit var tvAccStatus: TextView
+    private lateinit var tvOverlayStatus: TextView
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="HỆ ĐIỀU HÀNH GIẢI ĐỀ"
-            android:textColor="#666666"
-            android:textSize="12sp"
-            android:letterSpacing="0.2"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="32dp"/>
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main) // Gọi file XML giao diện mới
 
-        <!-- API KEY CARD -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/bg_card"
-            android:padding="16dp"
-            android:layout_marginBottom="16dp">
+        val prefs = getSharedPreferences("nexus", MODE_PRIVATE)
+        val etKey1 = findViewById<EditText>(R.id.etKey1)
+        val etKey2 = findViewById<EditText>(R.id.etKey2)
+        val etKey3 = findViewById<EditText>(R.id.etKey3)
+        
+        etKey1.setText(prefs.getString("groqKey1", ""))
+        etKey2.setText(prefs.getString("groqKey2", ""))
+        etKey3.setText(prefs.getString("groqKey3", ""))
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="GROQ API KEYS" android:textColor="#00F3FF" android:textSize="12sp" android:textStyle="bold" android:layout_marginBottom="8dp"/>
+        tvNotiStatus = findViewById(R.id.tvNotiStatus)
+        tvAccStatus = findViewById(R.id.tvAccStatus)
+        tvOverlayStatus = findViewById(R.id.tvOverlayStatus)
 
-            <EditText
-                android:id="@+id/etKey1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Nhập Key 1 (Bắt buộc)"
-                android:textColor="#FFF" android:textColorHint="#444" android:textSize="14sp"
-                android:backgroundTint="#00F3FF" android:layout_marginBottom="8dp" android:inputType="textPassword"/>
+        findViewById<Button>(R.id.btnSaveKey).setOnClickListener {
+            prefs.edit().apply {
+                putString("groqKey1", etKey1.text.toString())
+                putString("groqKey2", etKey2.text.toString())
+                putString("groqKey3", etKey3.text.toString())
+                apply()
+            }
+            Toast.makeText(this, "Đã lưu cấu hình!", Toast.LENGTH_SHORT).show()
+        }
 
-            <EditText
-                android:id="@+id/etKey2"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Nhập Key 2 (Tùy chọn)"
-                android:textColor="#FFF" android:textColorHint="#444" android:textSize="14sp"
-                android:backgroundTint="#333" android:layout_marginBottom="8dp" android:inputType="textPassword"/>
+        findViewById<Button>(R.id.btnNoti).setOnClickListener {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
 
-            <EditText
-                android:id="@+id/etKey3"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Nhập Key 3 (Tùy chọn)"
-                android:textColor="#FFF" android:textColorHint="#444" android:textSize="14sp"
-                android:backgroundTint="#333" android:inputType="textPassword"/>
+        findViewById<Button>(R.id.btnAcc).setOnClickListener {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
 
-            <Button
-                android:id="@+id/btnSaveKey"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginTop="12dp"
-                android:text="LƯU CẤU HÌNH"
-                android:background="@drawable/bg_btn_neon"
-                android:textColor="#000" android:textStyle="bold"/>
-        </LinearLayout>
+        findViewById<Button>(R.id.btnOverlay).setOnClickListener {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+            } else {
+                Toast.makeText(this, "Đã có quyền Cửa sổ nổi!", Toast.LENGTH_SHORT).show()
+            }
+        }
 
-        <!-- TRẠNG THÁI HỆ THỐNG -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="TRẠNG THÁI HỆ THỐNG" android:textColor="#888" android:textSize="12sp" android:layout_marginBottom="8dp"/>
+        findViewById<Button>(R.id.btnStart).setOnClickListener {
+            checkAndStartService()
+        }
+    }
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/bg_card"
-            android:padding="16dp">
+    override fun onResume() {
+        super.onResume()
+        // Cập nhật trạng thái quyền mỗi khi quay lại App
+        updatePermissionsStatus()
+    }
 
-            <!-- Quyền thông báo -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="12dp">
-                <TextView android:id="@+id/tvNotiStatus" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="1. Quyền Thông Báo" android:textColor="#FFF"/>
-                <Button android:id="@+id/btnNoti" android:layout_width="wrap_content" android:layout_height="40dp" android:text="CẤP QUYỀN" android:textSize="10sp" android:backgroundTint="#333"/>
-            </LinearLayout>
+    private fun updatePermissionsStatus() {
+        // Check Noti
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                tvNotiStatus.text = "1. Quyền Thông Báo (Đã Bật) ✅"
+                tvNotiStatus.setTextColor(android.graphics.Color.parseColor("#00FF41"))
+            } else {
+                tvNotiStatus.text = "1. Quyền Thông Báo (Chưa Bật) ❌"
+                tvNotiStatus.setTextColor(android.graphics.Color.parseColor("#FF0055"))
+            }
+        } else {
+            tvNotiStatus.text = "1. Quyền Thông Báo (Không cần) ✅"
+        }
 
-            <!-- Quyền trợ năng -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="12dp">
-                <TextView android:id="@+id/tvAccStatus" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="2. Quyền Trợ Năng" android:textColor="#FFF"/>
-                <Button android:id="@+id/btnAcc" android:layout_width="wrap_content" android:layout_height="40dp" android:text="CẤP QUYỀN" android:textSize="10sp" android:backgroundTint="#333"/>
-            </LinearLayout>
+        // Check Accessibility (Giả lập check bằng cách xem Service có null không)
+        if (NexusAccessibilityService.instance != null) {
+            tvAccStatus.text = "2. Quyền Trợ Năng (Đã Bật) ✅"
+            tvAccStatus.setTextColor(android.graphics.Color.parseColor("#00FF41"))
+        } else {
+            tvAccStatus.text = "2. Quyền Trợ Năng (Chưa Bật) ❌"
+            tvAccStatus.setTextColor(android.graphics.Color.parseColor("#FF0055"))
+        }
 
-            <!-- Quyền nổi -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-                <TextView android:id="@+id/tvOverlayStatus" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="3. Quyền Cửa Sổ Nổi" android:textColor="#FFF"/>
-                <Button android:id="@+id/btnOverlay" android:layout_width="wrap_content" android:layout_height="40dp" android:text="CẤP QUYỀN" android:textSize="10sp" android:backgroundTint="#333"/>
-            </LinearLayout>
-        </LinearLayout>
+        // Check Overlay
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (Settings.canDrawOverlays(this)) {
+                tvOverlayStatus.text = "3. Quyền Cửa Sổ Nổi (Đã Bật) ✅"
+                tvOverlayStatus.setTextColor(android.graphics.Color.parseColor("#00FF41"))
+            } else {
+                tvOverlayStatus.text = "3. Quyền Cửa Sổ Nổi (Chưa Bật) ❌"
+                tvOverlayStatus.setTextColor(android.graphics.Color.parseColor("#FF0055"))
+            }
+        }
+    }
 
-        <Button
-            android:id="@+id/btnStart"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_marginTop="24dp"
-            android:text="🚀 KHỞI CHẠY NEXUS"
-            android:textStyle="bold" android:textSize="16sp"
-            android:background="@drawable/bg_btn_neon"
-            android:textColor="#000"/>
+    private fun checkAndStartService() {
+        if (NexusAccessibilityService.instance == null) {
+            Toast.makeText(this, "Vui lòng bật quyền Trợ Năng trước!", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            Toast.makeText(this, "Vui lòng cấp quyền Cửa sổ nổi!", Toast.LENGTH_LONG).show()
+            return
+        }
 
-    </LinearLayout>
-</ScrollView>
+        try {
+            val serviceIntent = Intent(this, OverlayService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(serviceIntent) else startService(serviceIntent)
+            Toast.makeText(this, "NEXUS ĐÃ KHỞI CHẠY!", Toast.LENGTH_SHORT).show()
+            finish() // Tắt app, nhường màn hình cho cửa sổ nổi
+        } catch (e: Exception) {
+            Toast.makeText(this, "Lỗi: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+}
