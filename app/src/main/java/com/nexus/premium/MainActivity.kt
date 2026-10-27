@@ -1,90 +1,124 @@
-package com.nexus.premium
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#09090B"
+    android:fillViewport="true">
 
-import android.Manifest
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.provider.Settings
-import android.widget.*
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
 
-class MainActivity : AppCompatActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(50, 50, 50, 50) }
-        
-        layout.addView(TextView(this).apply { text = "NEXUS PREMIUM\n"; textSize = 22f; setTextColor(android.graphics.Color.parseColor("#00F3FF")) })
-        
-        val prefs = getSharedPreferences("nexus", MODE_PRIVATE)
-        
-        val inputKey1 = EditText(this).apply { hint = "Nhập Groq Key 1 (Bắt buộc)"; setText(prefs.getString("groqKey1", "")) }
-        val inputKey2 = EditText(this).apply { hint = "Nhập Groq Key 2 (Tùy chọn)"; setText(prefs.getString("groqKey2", "")) }
-        val inputKey3 = EditText(this).apply { hint = "Nhập Groq Key 3 (Tùy chọn)"; setText(prefs.getString("groqKey3", "")) }
-        
-        layout.addView(inputKey1)
-        layout.addView(inputKey2)
-        layout.addView(inputKey3)
-        
-        layout.addView(Button(this).apply {
-            text = "1. LƯU TẤT CẢ KEY"
-            setOnClickListener {
-                prefs.edit().apply {
-                    putString("groqKey1", inputKey1.text.toString())
-                    putString("groqKey2", inputKey2.text.toString())
-                    putString("groqKey3", inputKey3.text.toString())
-                    apply()
-                }
-                Toast.makeText(this@MainActivity, "Đã lưu Key!", Toast.LENGTH_SHORT).show()
-            }
-        })
-        
-        layout.addView(Button(this).apply {
-            text = "2. BẬT QUYỀN TRỢ NĂNG"
-            setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
-        })
-        
-        layout.addView(Button(this).apply {
-            text = "3. BẬT CỬA SỔ NỔI (CHẠY APP)"
-            setOnClickListener { checkAndRequestPermissions() }
-        })
-        
-        setContentView(layout)
-    }
+        <!-- LOGO & TITLE -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="NEXUS PREMIUM"
+            android:textColor="#00F3FF"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace"
+            android:layout_gravity="center_horizontal"
+            android:shadowColor="#00F3FF"
+            android:shadowDx="0" android:shadowDy="0" android:shadowRadius="15" />
 
-    private fun checkAndRequestPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
-                return
-            }
-        }
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="HỆ ĐIỀU HÀNH GIẢI ĐỀ"
+            android:textColor="#666666"
+            android:textSize="12sp"
+            android:letterSpacing="0.2"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="32dp"/>
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-            try {
-                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-                Toast.makeText(this, "Hãy cấp quyền 'Hiển thị trên ứng dụng khác'!", Toast.LENGTH_LONG).show()
-            } catch (e: Exception) {}
-            return
-        }
+        <!-- API KEY CARD -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            try {
-                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-                intent.data = Uri.parse("package:$packageName")
-                startActivity(intent)
-            } catch (e: Exception) {}
-        }
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="GROQ API KEYS" android:textColor="#00F3FF" android:textSize="12sp" android:textStyle="bold" android:layout_marginBottom="8dp"/>
 
-        try {
-            val serviceIntent = Intent(this, OverlayService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(serviceIntent) else startService(serviceIntent)
-            finish()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Lỗi khởi động: ${e.message}", Toast.LENGTH_LONG).show()
-        }
-    }
-}
+            <EditText
+                android:id="@+id/etKey1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Nhập Key 1 (Bắt buộc)"
+                android:textColor="#FFF" android:textColorHint="#444" android:textSize="14sp"
+                android:backgroundTint="#00F3FF" android:layout_marginBottom="8dp" android:inputType="textPassword"/>
+
+            <EditText
+                android:id="@+id/etKey2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Nhập Key 2 (Tùy chọn)"
+                android:textColor="#FFF" android:textColorHint="#444" android:textSize="14sp"
+                android:backgroundTint="#333" android:layout_marginBottom="8dp" android:inputType="textPassword"/>
+
+            <EditText
+                android:id="@+id/etKey3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Nhập Key 3 (Tùy chọn)"
+                android:textColor="#FFF" android:textColorHint="#444" android:textSize="14sp"
+                android:backgroundTint="#333" android:inputType="textPassword"/>
+
+            <Button
+                android:id="@+id/btnSaveKey"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="12dp"
+                android:text="LƯU CẤU HÌNH"
+                android:background="@drawable/bg_btn_neon"
+                android:textColor="#000" android:textStyle="bold"/>
+        </LinearLayout>
+
+        <!-- TRẠNG THÁI HỆ THỐNG -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="TRẠNG THÁI HỆ THỐNG" android:textColor="#888" android:textSize="12sp" android:layout_marginBottom="8dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card"
+            android:padding="16dp">
+
+            <!-- Quyền thông báo -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="12dp">
+                <TextView android:id="@+id/tvNotiStatus" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="1. Quyền Thông Báo" android:textColor="#FFF"/>
+                <Button android:id="@+id/btnNoti" android:layout_width="wrap_content" android:layout_height="40dp" android:text="CẤP QUYỀN" android:textSize="10sp" android:backgroundTint="#333"/>
+            </LinearLayout>
+
+            <!-- Quyền trợ năng -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="12dp">
+                <TextView android:id="@+id/tvAccStatus" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="2. Quyền Trợ Năng" android:textColor="#FFF"/>
+                <Button android:id="@+id/btnAcc" android:layout_width="wrap_content" android:layout_height="40dp" android:text="CẤP QUYỀN" android:textSize="10sp" android:backgroundTint="#333"/>
+            </LinearLayout>
+
+            <!-- Quyền nổi -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                <TextView android:id="@+id/tvOverlayStatus" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="3. Quyền Cửa Sổ Nổi" android:textColor="#FFF"/>
+                <Button android:id="@+id/btnOverlay" android:layout_width="wrap_content" android:layout_height="40dp" android:text="CẤP QUYỀN" android:textSize="10sp" android:backgroundTint="#333"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnStart"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginTop="24dp"
+            android:text="🚀 KHỞI CHẠY NEXUS"
+            android:textStyle="bold" android:textSize="16sp"
+            android:background="@drawable/bg_btn_neon"
+            android:textColor="#000"/>
+
+    </LinearLayout>
+</ScrollView>
