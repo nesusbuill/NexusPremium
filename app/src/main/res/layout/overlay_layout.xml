@@ -2,52 +2,70 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_hud"
-    android:orientation="vertical"
-    android:padding="12dp"
-    android:elevation="10dp">
+    android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="NEXUS PREMIUM"
-        android:textColor="#00F3FF"
-        android:textSize="10sp"
-        android:fontFamily="monospace"
-        android:layout_marginBottom="8dp"
-        android:layout_gravity="center_horizontal" />
-
-    <TextView
-        android:id="@+id/tvResult"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="?"
-        android:textColor="#00FF41"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="12dp" />
-
+    <!-- Nút tròn nổi (Khi thu gọn) -->
     <Button
-        android:id="@+id/btnSolve"
-        android:layout_width="150dp"
-        android:layout_height="40dp"
-        android:text="QUÉT TOÀN BỘ"
-        android:backgroundTint="#00F3FF"
-        android:textColor="#000000"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="6dp"/>
-
-    <Button
-        android:id="@+id/btnClose"
+        android:id="@+id/btnFab"
         android:layout_width="60dp"
-        android:layout_height="30dp"
-        android:text="X"
-        android:textSize="12sp"
-        android:backgroundTint="#333"
-        android:textColor="#FFF"
-        android:layout_gravity="center_horizontal"/>
+        android:layout_height="60dp"
+        android:background="@drawable/bg_btn_neon"
+        android:text="AI"
+        android:textColor="#000"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:elevation="10dp"/>
+
+    <!-- Bảng điều khiển (Khi mở rộng) -->
+    <LinearLayout
+        android:id="@+id/panelView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_card"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:elevation="10dp"
+        android:visibility="gone"
+        android:layout_marginTop="8dp">
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="NEXUS READY"
+            android:textColor="#00F3FF"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:layout_marginBottom="8dp"
+            android:layout_gravity="center_horizontal" />
+
+        <TextView
+            android:id="@+id/tvResult"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="?"
+            android:textColor="#00FF41"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="12dp" />
+
+        <Button
+            android:id="@+id/btnSolve"
+            android:layout_width="130dp"
+            android:layout_height="40dp"
+            android:text="QUÉT ĐỀ"
+            android:backgroundTint="#00F3FF"
+            android:textColor="#000"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btnClosePanel"
+            android:layout_width="130dp"
+            android:layout_height="30dp"
+            android:text="THU NHỎ"
+            android:backgroundTint="#333"
+            android:textColor="#FFF"/>
+    </LinearLayout>
 </LinearLayout>
