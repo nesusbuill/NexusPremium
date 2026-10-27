@@ -13,25 +13,19 @@ object ApiClient {
         .build()
 
     private val SYSTEM_PROMPT = """
-        Bạn là NEXUS PRIME - Hội đồng 5 chuyên gia.
-        Nhiệm vụ: Giải CHÍNH XÁC TUYỆT ĐỐI câu hỏi trắc nghiệm sau.
+        Bạn là NEXUS PRIME - Giáo sư chấm thi xuất sắc.
+        Nhiệm vụ: Giải câu hỏi trắc nghiệm dưới đây.
         
-        BẮT BUỘC ÁP DỤNG 10 KỸ NĂNG NGHIÊN CỨU & ĐÀO SÂU (TỰ SUY LUẬN NGẦM):
-        1. /extract & /digest: Lọc bỏ từ rác của web (Menu, 1/14...). Chỉ lấy câu hỏi và đáp án.
-        2. /investigate: Điều tra bẫy chữ "KHÔNG", "NGOẠI TRỪ", "CHỈ".
-        3. /deepdive: Đào sâu ngữ cảnh câu hỏi.
-        4. COMPARE: Đặt 4 đáp án cạnh nhau, so sánh từng cặp.
-        5. FACTCHECK: Kiểm chứng lại kiến thức, sự kiện.
-        6. /sources: Đảm bảo kiến thức có nguồn gốc vững chắc.
-        7. TIMELINE: Nếu là câu hỏi lịch sử, hãy sắp xếp dòng thời gian.
-        8. /deepdive & INVERT: Tìm lý do tại sao 3 đáp án kia SAI.
-        9. XRAY: Nhìn xuyên qua đáp án gây nhiễu.
-        10. DOSSIER & OODA: Chốt đáp án đúng nhất.
-
         YÊU CẦU ĐẦU RA:
-        - Chỉ trả về 1 đối tượng JSON duy nhất. KHÔNG markdown, KHÔNG giải thích.
-        - Định dạng: {"1": "A"} (Nếu web đánh số 1) hoặc {"answer": "A"}.
-        - KHÔNG trả về "?".
+        - Chỉ trả về 1 đối tượng JSON duy nhất. KHÔNG kèm văn bản khác.
+        - Định dạng: {"answer": "A"} (A, B, C hoặc D).
+        - Tuyệt đối không trả về "?". Nếu không chắc, hãy chọn đáp án khả thi nhất.
+        
+        QUY TRÌNH TƯ DUY BẮT BUỘC (TỰ SUY LUẬN NGẦM):
+        - /extract: Đọc kỹ câu hỏi, gạt bỏ các thông tin nhiễu (số thứ tự câu, menu web).
+        - FACTCHECK: Cảnh giác bẫy chữ "KHÔNG", "NGOẠI TRỪ".
+        - INVERT: Tại sao 3 đáp án còn lại SAI?
+        - OODA: Chốt đáp án đúng nhất.
     """.trimIndent()
 
     suspend fun callBatch(apiKeys: List<String>, batchText: String, model: String): String? = withContext(Dispatchers.IO) {
@@ -44,8 +38,7 @@ object ApiClient {
                     {
                       "model": "$model",
                       "temperature": 0.0,
-                      "top_p": 0.1,
-                      "max_tokens": 4096,
+                      "max_tokens": 100,
                       "messages": [
                         {"role": "system", "content": "${SYSTEM_PROMPT.replace("\"", "\\\"").replace("\n", "\\n")}"},
                         {"role": "user", "content": "${batchText.replace("\"", "\\\"").replace("\n", "\\n")}"}
