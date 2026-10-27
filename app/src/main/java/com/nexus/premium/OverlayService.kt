@@ -8,13 +8,14 @@ import android.os.IBinder
 import android.view.*
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.Switch
 import android.widget.TextView
-import org.json.JSONObject
 
 class OverlayService : Service() {
     private var windowManager: WindowManager? = null
     private var floatingView: View? = null
     private var isViewAdded = false
+    private var isDragging = false
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
@@ -32,6 +33,8 @@ class OverlayService : Service() {
             val btnFab = floatingView!!.findViewById<Button>(R.id.btnFab)
             val panelView = floatingView!!.findViewById<LinearLayout>(R.id.panelView)
             val btnClosePanel = floatingView!!.findViewById<Button>(R.id.btnClosePanel)
+            val btnNext = floatingView!!.findViewById<Button>(R.id.btnNext)
+            val switchAutoNext = floatingView!!.findViewById<Switch>(R.id.switchAutoNext)
 
             val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY else WindowManager.LayoutParams.TYPE_PHONE
             val params = WindowManager.LayoutParams(
@@ -46,18 +49,7 @@ class OverlayService : Service() {
             windowManager?.addView(floatingView, params)
             isViewAdded = true
 
-            // Bấm nút FAB để mở Menu
-            btnFab.setOnClickListener {
-                btnFab.visibility = View.GONE
-                panelView.visibility = View.VISIBLE
-            }
-            // Bấm thu nhỏ để quay lại FAB
-            btnClosePanel.setOnClickListener {
-                panelView.visibility = View.GONE
-                btnFab.visibility = View.VISIBLE
-            }
-
-            // LOGIC KÉO THẢ MƯỢT MÀ VÀ CHỐNG VĂNG MÀN HÌNH
+            // Logic kéo thả mượt (Chống giật)
             val dragListener = View.OnTouchListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
@@ -65,33 +57,51 @@ class OverlayService : Service() {
                         initialY = params.y
                         initialTouchX = event.rawX
                         initialTouchY = event.rawY
+                        isDragging = false
                         false
                     }
                     MotionEvent.ACTION_MOVE -> {
-                        params.x = initialX + (event.rawX - initialTouchX).toInt()
-                        params.y = initialY + (event.rawY - initialTouchY).toInt()
-                        
-                        // Chống kéo văng: Giới hạn tọa độ không âm
-                        if (params.x < 0) params.x = 0
-                        if (params.y < 0) params.y = 0
-                        
-                        windowManager?.updateViewLayout(floatingView, params)
-                        true
+                        val dx = event.rawX - initialTouchX
+                        val dy = event.rawY - initialTouchY
+                        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) { // Ngưỡng kéo để tránh nhầm với click
+                            isDragging = true
+                            params.x = initialX + dx.toInt()
+                            params.y = initialY + dy.toInt()
+                            if (params.x < 0) params.x = 0
+                            if (params.y < 0) params.y = 0
+                            windowManager?.updateViewLayout(floatingView, params)
+                            true
+                        } else false
                     }
                     else -> false
                 }
             }
-            
-            // Áp dụng kéo thả cho cả nút FAB và Bảng điều khiển
+
             btnFab.setOnTouchListener(dragListener)
-            // Nếu muốn kéo cả bảng thì bỏ comment dòng dưới, nhưng thường chỉ kéo FAB
-            // panelView.setOnTouchListener(dragListener) 
+            btnFab.setOnClickListener {
+                if (!isDragging) {
+                    btnFab.visibility = View.GONE
+                    panelView.visibility = View.VISIBLE
+                }
+            }
+
+            btnClosePanel.setOnClickListener {
+                panelView.visibility = View.GONE
+                btnFab.visibility = View.VISIBLE
+            }
+
+            btnNext.setOnClickListener {
+                val acc = NexusAccessibilityService.instance
+                if (acc != null) {
+                    tvStatus.text = "ĐANG NEXT..."
+                    val success = acc.clickNextButton()
+                    if (!success) tvStatus.text = "KHÔNG TÌM THẤY NÚT NEXT"
+                }
+            }
 
             btnSolve.setOnClickListener {
                 val accessibility = NexusAccessibilityService.instance
                 if (accessibility == null) { tvStatus.text = "BẬT TRỢ NĂNG!"; return@setOnClickListener }
-                val screenText = accessibility.scanScreenText()
-                if (screenText.length < 20) { tvStatus.text = "KHÔNG THẤY ĐỀ"; return@setOnClickListener }
                 tvResult.text = "⏳"
                 
                 val prefs = getSharedPreferences("nexus", MODE_PRIVATE)
@@ -102,19 +112,14 @@ class OverlayService : Service() {
                 ).filter { it.isNotBlank() }
                 
                 if (apiKeys.isEmpty()) { tvStatus.text = "CHƯA NHẬP KEY!"; return@setOnClickListener }
-                accessibility.processAllQuestions(apiKeys, screenText)
+                
+                // Gọi hàm giải 1 câu duy nhất, truyền trạng thái của Switch
+                accessibility.solveCurrentQuestion(apiKeys, switchAutoNext.isChecked)
             }
 
             NexusEvents.onStatus = { msg -> tvStatus.text = msg }
-            NexusEvents.onResult = { res ->
-                if (res.startsWith("{")) {
-                    try {
-                        val json = JSONObject(res)
-                        val firstKey = json.keys().next()
-                        tvResult.text = json.getString(firstKey)
-                    } catch (e: Exception) { tvResult.text = "LỖI" }
-                } else { tvResult.text = res }
-            }
+            NexusEvents.onResult = { res -> tvResult.text = res }
+            
         } catch (e: Exception) { stopSelf() }
     }
 
