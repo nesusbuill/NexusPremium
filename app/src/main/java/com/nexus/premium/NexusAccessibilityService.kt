@@ -11,107 +11,60 @@ class NexusAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() { super.onServiceConnected(); instance = this }
 
-    // HÀM QUÉT TEXT ĐÃ ĐƯỢC FIX LỖI
-    fun scanScreenText(): String {
+    // Hàm quét CHỈ LẤY CÂU HỎI ĐANG HIỂN THỊ
+    fun scanCurrentQuestion(): String {
         val rootNode = rootInActiveWindow ?: return ""
         val sb = StringBuilder()
-        
-        // Quét toàn bộ cửa sổ hiện tại
         extractText(rootNode, sb)
-        
-        // Cố gắng quét thêm các cửa sổ con (như iframe trong trình duyệt)
-        try {
-            for (window in windows) {
-                val windowRoot = window.root ?: continue
-                extractText(windowRoot, sb)
-            }
-        } catch (e: Exception) {}
-
-        var fullText = sb.toString()
-        
-        // TÌM VỊ TRÍ CÂU HỎI ĐẦU TIÊN (Chấp nhận cả "Câu 1", "Bài 1", hoặc "1.")
-        // Regex này tìm số 1 đứng đầu dòng, theo sau là dấu chấm hoặc khoảng trắng
-        val regex = Regex("(?m)^\\s*(Câu|Bài|Question)?\\s*1[\\.\\:\\s]")
-        val match = regex.find(fullText)
-        
-        // Nếu tìm thấy, cắt bỏ phần menu rác phía trên
-        if (match != null) {
-            fullText = fullText.substring(match.range.first)
-        }
-        
-        return fullText.trim()
+        return sb.toString().trim()
     }
 
     private fun extractText(node: AccessibilityNodeInfo?, sb: StringBuilder) {
         if (node == null) return
-        if (node.text != null) {
-            sb.append(node.text).append("\n")
-        }
-        for (i in 0 until node.childCount) {
-            extractText(node.getChild(i), sb)
-        }
+        if (node.text != null) sb.append(node.text).append("\n")
+        for (i in 0 until node.childCount) extractText(node.getChild(i), sb)
     }
 
-    fun processAllQuestions(apiKeys: List<String>, fullText: String) {
-        NexusEvents.onStatus?.invoke("ĐANG CHIA LÔ...")
-        
-        // TÌM TẤT CẢ CÁC CÂU HỎI (Linh hoạt hơn: "Câu 1", "Bài 2", hoặc "3.")
-        val regex = Regex("(?m)^\\s*(Câu|Bài|Question)?\\s*(\\d+)[\\.\\:\\s]")
-        val matches = regex.findAll(fullText).toList()
-        
-        if (matches.isEmpty()) { 
+    fun solveCurrentQuestion(apiKeys: List<String>, autoNext: Boolean) {
+        val screenText = scanCurrentQuestion()
+        if (screenText.length < 20) { 
             NexusEvents.onStatus?.invoke("KHÔNG THẤY ĐỀ"); 
             return 
         }
 
-        // Chia lô 5 câu/lô
-        val batchSize = 5 
-        val batches = mutableListOf<String>()
-        for (i in matches.indices step batchSize) {
-            val start = matches[i].range.first
-            val end = if (i + batchSize < matches.size) matches[i + batchSize].range.first else fullText.length
-            batches.add(fullText.substring(start, end))
-        }
-
-        NexusEvents.onStatus?.invoke("ĐANG GIẢI ${batches.size} LÔ...")
+        NexusEvents.onStatus?.invoke("ĐANG PHÂN TÍCH...")
 
         CoroutineScope(Dispatchers.Main).launch {
-            val results = mutableListOf<String?>()
-            coroutineScope {
-                val tasks = batches.map { batchText ->
-                    async(Dispatchers.IO) { ApiClient.callBatch(apiKeys, batchText, "openai/gpt-oss-120b") }
-                }
-                tasks.forEach { results.add(it.await()) }
-            }
+            val result = ApiClient.callBatch(apiKeys, screenText, "openai/gpt-oss-120b")
+            
+            if (result != null && result.contains("{")) {
+                try {
+                    val json = JSONObject(result)
+                    val firstKey = json.keys().next()
+                    val ans = json.getString(firstKey)
+                    
+                    NexusEvents.onStatus?.invoke("ĐÁP ÁN: $ans")
+                    NexusEvents.onResult?.invoke(ans)
 
-            val mergedResult = JSONObject()
-            var successCount = 0
-            results.forEach { jsonString ->
-                if (jsonString != null && jsonString.contains("{")) {
-                    try {
-                        val json = JSONObject(jsonString)
-                        val keys = json.keys()
-                        while (keys.hasNext()) {
-                            val key = keys.next()
-                            mergedResult.put(key, json.getString(key))
-                            successCount++
-                        }
-                    } catch (e: Exception) { }
+                    // Click đáp án
+                    val clicked = autoClickAnswer(ans)
+                    if (clicked && autoNext) {
+                        NexusEvents.onStatus?.invoke("ĐÃ CHỌN $ans. ĐANG NEXT...")
+                        delay(1000) // Chờ 1 giây cho web load
+                        clickNextButton()
+                    } else if (!clicked) {
+                        NexusEvents.onStatus?.invoke("KHÔNG TÌM THẤY NÚT CHỌN")
+                    }
+                } catch (e: Exception) { 
+                    NexusEvents.onStatus?.invoke("LỖI JSON") 
                 }
+            } else { 
+                NexusEvents.onStatus?.invoke("LỖI API") 
             }
-
-            if (successCount > 0) {
-                NexusEvents.onStatus?.invoke("XONG $successCount CÂU")
-                NexusEvents.onResult?.invoke(mergedResult.toString())
-                val keys = mergedResult.keys()
-                while (keys.hasNext()) {
-                    val ans = mergedResult.getString(keys.next())
-                    if (ans.length == 1 && ans.matches(Regex("[A-D]"))) autoClickAnswer(ans)
-                }
-            } else { NexusEvents.onStatus?.invoke("LỖI API") }
         }
     }
 
+    // Thuật toán Click thông minh (Tìm thẻ cha, thẻ anh em)
     fun autoClickAnswer(answer: String): Boolean {
         val rootNode = rootInActiveWindow ?: return false
         return findAndClick(rootNode, answer)
@@ -122,6 +75,7 @@ class NexusAccessibilityService : AccessibilityService() {
         val text = node.text?.toString()?.trim()?.uppercase() ?: ""
         val contentDesc = node.contentDescription?.toString()?.trim()?.uppercase() ?: ""
         
+        // Tìm chính xác hoặc bắt đầu bằng "A.", "A)"
         if (text == answer || text.startsWith("$answer.") || text.startsWith("$answer)") || contentDesc == answer) {
             var clickNode: AccessibilityNodeInfo? = node
             while (clickNode != null) {
@@ -129,6 +83,8 @@ class NexusAccessibilityService : AccessibilityService() {
                 clickNode = clickNode.parent
             }
         }
+        
+        // Nếu không click được, thử tìm thẻ input radio bên cạnh
         val parent = node.parent
         if (parent != null) {
             for (i in 0 until parent.childCount) {
@@ -138,7 +94,33 @@ class NexusAccessibilityService : AccessibilityService() {
                 }
             }
         }
+
         for (i in 0 until node.childCount) { if (findAndClick(node.getChild(i), answer)) return true }
+        return false
+    }
+
+    // Tự động tìm và click nút Next
+    fun clickNextButton(): Boolean {
+        val rootNode = rootInActiveWindow ?: return false
+        val nextKeywords = listOf("Tiếp", "Next", "Tiếp theo", "Câu tiếp", ">", "Next Question")
+        return findAndClickByText(rootNode, nextKeywords)
+    }
+
+    private fun findAndClickByText(node: AccessibilityNodeInfo?, keywords: List<String>): Boolean {
+        if (node == null) return false
+        val text = node.text?.toString()?.trim() ?: ""
+        val desc = node.contentDescription?.toString()?.trim() ?: ""
+        
+        for (kw in keywords) {
+            if (text.equals(kw, true) || desc.equals(kw, true) || text.contains(kw, true)) {
+                var clickNode: AccessibilityNodeInfo? = node
+                while (clickNode != null) {
+                    if (clickNode.isClickable) { clickNode.performAction(AccessibilityNodeInfo.ACTION_CLICK); return true }
+                    clickNode = clickNode.parent
+                }
+            }
+        }
+        for (i in 0 until node.childCount) { if (findAndClickByText(node.getChild(i), keywords)) return true }
         return false
     }
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
