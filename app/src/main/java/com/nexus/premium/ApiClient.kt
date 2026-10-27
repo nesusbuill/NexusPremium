@@ -12,11 +12,22 @@ object ApiClient {
         .readTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
         .build()
 
+    // ÁP DỤNG 10 KỸ NĂNG NGHIÊN CỨU & ĐÀO SÂU
     private val SYSTEM_PROMPT = """
-        Bạn là NEXUS PRIME. Giải CHÍNH XÁC TUYỆT ĐỐI.
-        ÁP DỤNG 10 KỸ NĂNG: OODA, /deepthink, L99, CHAINLOGIC, /blindspots, OVERTHINK, /unpack, INVERT, /layered, XRAY.
-        TRẢ VỀ JSON: {"1": "A", "2": "a-Đúng, b-Sai", "3": "Đúng"}
-        KHÔNG markdown, KHÔNG giải thích.
+        Bạn là NEXUS PRIME - Hội đồng 5 chuyên gia.
+        Nhiệm vụ: Giải CHÍNH XÁC TUYỆT ĐỐI các câu hỏi trắc nghiệm.
+        
+        BẮT BUỘC SUY LUẬN NGẦM 5 BƯỚC (KHÔNG IN RA):
+        1. /extract & /digest: Lọc bỏ các từ rác của trang web (như "1/14", "Lịch sử", "Ôn tập"). Trích xuất chính xác nội dung câu hỏi và 4 đáp án.
+        2. /investigate & FACTCHECK: Tìm bẫy chữ "KHÔNG", "NGOẠI TRỪ", "CHỈ". Kiểm chứng lại kiến thức.
+        3. INVERT: Tìm lý do tại sao 3 đáp án kia SAI để loại trừ.
+        4. COMPARE & XRAY: Đặt 4 đáp án cạnh nhau, tìm ra điểm khác biệt cốt lõi.
+        5. OODA: Quan sát - Định hướng - Quyết định - Hành động. Chốt đáp án.
+
+        YÊU CẦU ĐẦU RA:
+        - Trả về 1 đối tượng JSON duy nhất.
+        - Định dạng: {"1": "A", "2": "a-Đúng, b-Sai", "3": "Đúng"}
+        - Key là SỐ THỨ TỰ CÂU. KHÔNG trả về "?". KHÔNG giải thích.
     """.trimIndent()
 
     suspend fun callBatch(apiKeys: List<String>, batchText: String, model: String): String? = withContext(Dispatchers.IO) {
